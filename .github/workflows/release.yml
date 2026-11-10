@@ -158,17 +158,21 @@ jobs:
           TARGET_OS: ${{ matrix.goos }}
           TARGET_ARCH: ${{ matrix.goarch }}
         run: python "$RUNNER_TEMP/release-tools/release_matrix.py" config build --goos "$TARGET_OS" --goarch "$TARGET_ARCH" --output "$RUNNER_TEMP/goreleaser.matrix.yaml"
+      - name: Verify the selected GitHub source is unchanged
+        run: git diff --exit-code HEAD --
       - name: Build and archive without publishing
         uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
-          args: release --snapshot --clean --skip=validate,publish,docker,announce --config=${{ runner.temp }}/goreleaser.matrix.yaml
+          args: release --snapshot --clean --skip=validate,publish,docker,announce,before --config=${{ runner.temp }}/goreleaser.matrix.yaml
         env:
           GITHUB_REPO_OWNER: ${{ github.repository_owner }}
           GITHUB_REPO_OWNER_LOWER: ${{ needs.prepare.outputs.owner_lower }}
           GITHUB_REPO_NAME: ${{ github.event.repository.name }}
           DOCKERHUB_USERNAME: skip
           TAG_MESSAGE: ''
+      - name: Verify the build preserved the selected source
+        run: git diff --exit-code HEAD --
       - name: Verify and collect the target archive
         env:
           TARGET_OS: ${{ matrix.goos }}
